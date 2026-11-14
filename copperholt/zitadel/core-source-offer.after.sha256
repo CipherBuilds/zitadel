@@ -1,0 +1,4 @@
+ec64b811bc905a67c2714251acdf6f5b2dc24741b981b9f260346f96caff1c73  console/src/app/modules/footer/footer.component.html
+b8e4e53f0f8a8938a7b80131a718133c63d0e8791c93f25141b64599bf1f6cfd  console/src/app/modules/footer/footer.component.scss
+0b3bdafb2e7dfa9386db0170d0d13206f731d6dd7ed47139d11b5c5aa67e6d48  internal/api/ui/login/static/resources/themes/scss/styles/footer/footer.scss
+ec3f34e35657f76d07d08e45d3cddcacc27735d82732d27bd49a76a534ae7a0c  internal/api/ui/login/static/templates/footer.html

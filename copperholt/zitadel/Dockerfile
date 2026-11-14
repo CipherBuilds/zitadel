@@ -38,6 +38,18 @@ RUN go get \
       google.golang.org/grpc@v1.83.2
 RUN --mount=type=cache,id=zitadel-pnpm-store,target=/root/.local/share/pnpm/store \
     corepack enable && pnpm install --frozen-lockfile
+# AGPL-3.0 section 13 source offer (LIC-FIX01, Compliance FINAL wording of 14 Nov 2026) on every page this image
+# serves: the Management Console footer (on every console page) and the login v1 footer (every login v1 page renders
+# it through main-bottom), each with "Source code" linking to the published fork. Applied before generation, which
+# compiles the login v1 stylesheet and templates into statik and builds the console that the binary embeds; the
+# regression below reads both as built.
+COPY core-source-offer.patch core-source-offer.before.sha256 core-source-offer.after.sha256 /opt/copperholt-core-source-offer/
+COPY --from=zitadel-tests source_offer_test.go /src/internal/api/ui/console/copperholt_source_offer_test.go
+RUN sha256sum -c /opt/copperholt-core-source-offer/core-source-offer.before.sha256 \
+    && git apply --check --whitespace=error-all /opt/copperholt-core-source-offer/core-source-offer.patch \
+    && git apply --whitespace=error-all /opt/copperholt-core-source-offer/core-source-offer.patch \
+    && sha256sum -c /opt/copperholt-core-source-offer/core-source-offer.after.sha256 \
+    && rm -r /opt/copperholt-core-source-offer
 # The pinned Console protobuf plugins are glibc-linked executables. Alpine's
 # gcompat loader above is required; without it exec reports a misleading ENOENT.
 # The upstream task's cache metadata does not declare every generated Go tool.
@@ -95,6 +107,10 @@ RUN --mount=type=cache,id=zitadel-go-mod,target=/go/pkg/mod \
     && GOMAXPROCS=2 go test -p 2 -race -count=1 -timeout=180s -v \
         -run '^TestCopperholtUserScanErrorsStayUnconfirmed$' ./internal/query | tee /tmp/copperholt-user-scan.log \
     && grep -q -- '^--- PASS: TestCopperholtUserScanErrorsStayUnconfirmed ' /tmp/copperholt-user-scan.log \
+    && GOMAXPROCS=2 go vet -p 2 ./internal/api/ui/console \
+    && GOMAXPROCS=2 go test -p 2 -race -count=1 -timeout=180s -v \
+        -run '^TestCopperholtSourceOfferOnEveryCorePage$' ./internal/api/ui/console | tee /tmp/copperholt-source-offer.log \
+    && grep -q -- '^--- PASS: TestCopperholtSourceOfferOnEveryCorePage ' /tmp/copperholt-source-offer.log \
     && GOMAXPROCS=2 go test -p 2 -race -count=1 -timeout=180s -v \
       -run '^Test/(HeadersHTTPStatusGRPCStatus|RouteAndProcess_MissingAuthority|MissingAuthorityAndHostHeader|AuthorityHeader)$' \
       google.golang.org/grpc/internal/transport google.golang.org/grpc/internal/xds/server google.golang.org/grpc/test \

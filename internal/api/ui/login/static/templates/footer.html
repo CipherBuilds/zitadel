@@ -1,3 +1,5 @@
+<!-- Modified by Copperholt Ltd on 2026-11-14: every Management Console page and every login v1 page shows the AGPL-3.0 source offer with a link to this repository. -->
+
 {{define "footer"}}
 <footer>
   {{ if hasWatermark .LabelPolicy }}
@@ -37,5 +39,10 @@
     >{{t "Footer.SupportEmail"}}</a
   >
   {{end}}
+  <!-- AGPL-3.0 section 13 source offer (LIC-FIX01), Compliance FINAL wording of 14 Nov 2026: on every page. -->
+  <p class="copperholt-source-offer" data-testid="copperholt-source-offer">
+    This sign-in service runs a modified version of ZITADEL, free software under the GNU Affero General Public License v3.0. Get the source code of the version running here, free of charge:
+    <a href="https://github.com/cipherbuilds/zitadel" rel="noopener noreferrer" target="_blank" data-testid="copperholt-source-link">Source code</a>
+  </p>
 </footer>
 {{end}}

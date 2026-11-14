@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-11-14: every Management Console page and every login v1 page shows the AGPL-3.0 source offer with a link to this repository.
+
 $container-max-width: 350px;
 $footer-height: 50px;
 $footer-padding: 0 1rem;
@@ -10,9 +12,24 @@ footer {
   display: flex;
   align-items: center;
   padding: $footer-padding;
+  flex-wrap: wrap;
 
   .fill-space {
     flex: 1;
+  }
+
+  // LIC-FIX01: the AGPL-3.0 source offer takes its own full-width row under the footer links.
+  .copperholt-source-offer {
+    flex-basis: 100%;
+    margin: 0.25rem 0;
+    font-size: 12px;
+    text-align: center;
+
+    a {
+      display: inline;
+      margin-left: 0;
+      text-decoration: underline;
+    }
   }
 
   a {

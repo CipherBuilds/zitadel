@@ -1,0 +1,89 @@
+diff --git a/console/src/app/modules/footer/footer.component.html b/console/src/app/modules/footer/footer.component.html
+index 644404c..b5d7b9c 100644
+--- a/console/src/app/modules/footer/footer.component.html
++++ b/console/src/app/modules/footer/footer.component.html
+@@ -43,4 +43,9 @@
+       <cnsl-theme-setting></cnsl-theme-setting>
+     </div>
+   </div>
++  <!-- AGPL-3.0 section 13 source offer (LIC-FIX01), Compliance FINAL wording of 14 Nov 2026: on every page. -->
++  <p class="copperholt-source-offer" data-testid="copperholt-source-offer">
++    This sign-in service runs a modified version of ZITADEL, free software under the GNU Affero General Public License v3.0. Get the source code of the version running here, free of charge:
++    <a href="https://github.com/cipherbuilds/zitadel" target="_blank" rel="noopener noreferrer" data-testid="copperholt-source-link">Source code</a>
++  </p>
+ </div>
+diff --git a/console/src/app/modules/footer/footer.component.scss b/console/src/app/modules/footer/footer.component.scss
+index 66cb91a..1fe12e4 100644
+--- a/console/src/app/modules/footer/footer.component.scss
++++ b/console/src/app/modules/footer/footer.component.scss
+@@ -20,8 +20,24 @@
+     background-color: map-get($background, footer) !important;
+     border-top: 1px solid map-get($foreground, divider);
+     display: flex;
++    flex-wrap: wrap;
+     transition: background-color 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+ 
++    // LIC-FIX01: the AGPL-3.0 source offer takes its own full-width row under the footer.
++    .copperholt-source-offer {
++      flex-basis: 100%;
++      max-width: 80rem;
++      margin: 1rem auto 0;
++      font-size: 12px;
++      text-align: center;
++      color: $secondary-text;
++
++      a {
++        color: inherit;
++        text-decoration: underline;
++      }
++    }
++
+     .footer-row {
+       display: flex;
+       flex-direction: row;
+diff --git a/internal/api/ui/login/static/resources/themes/scss/styles/footer/footer.scss b/internal/api/ui/login/static/resources/themes/scss/styles/footer/footer.scss
+index 674f6e0..83aefc8 100644
+--- a/internal/api/ui/login/static/resources/themes/scss/styles/footer/footer.scss
++++ b/internal/api/ui/login/static/resources/themes/scss/styles/footer/footer.scss
+@@ -10,11 +10,26 @@ footer {
+   display: flex;
+   align-items: center;
+   padding: $footer-padding;
++  flex-wrap: wrap;
+ 
+   .fill-space {
+     flex: 1;
+   }
+ 
++  // LIC-FIX01: the AGPL-3.0 source offer takes its own full-width row under the footer links.
++  .copperholt-source-offer {
++    flex-basis: 100%;
++    margin: 0.25rem 0;
++    font-size: 12px;
++    text-align: center;
++
++    a {
++      display: inline;
++      margin-left: 0;
++      text-decoration: underline;
++    }
++  }
++
+   a {
+     font-size: 12px;
+     margin-left: 1rem;
+diff --git a/internal/api/ui/login/static/templates/footer.html b/internal/api/ui/login/static/templates/footer.html
+index 9df7994..00a7f7f 100644
+--- a/internal/api/ui/login/static/templates/footer.html
++++ b/internal/api/ui/login/static/templates/footer.html
+@@ -37,5 +37,10 @@
+     >{{t "Footer.SupportEmail"}}</a
+   >
+   {{end}}
++  <!-- AGPL-3.0 section 13 source offer (LIC-FIX01), Compliance FINAL wording of 14 Nov 2026: on every page. -->
++  <p class="copperholt-source-offer" data-testid="copperholt-source-offer">
++    This sign-in service runs a modified version of ZITADEL, free software under the GNU Affero General Public License v3.0. Get the source code of the version running here, free of charge:
++    <a href="https://github.com/cipherbuilds/zitadel" rel="noopener noreferrer" target="_blank" data-testid="copperholt-source-link">Source code</a>
++  </p>
+ </footer>
+ {{end}}
