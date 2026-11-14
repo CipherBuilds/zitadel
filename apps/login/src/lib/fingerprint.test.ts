@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-11-08: sign-in cookies are Secure, HttpOnly and SameSite=Lax, and fingerprintId lasts 30 days instead of one year.
+
 import { v4 as uuidv4 } from "uuid";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -75,8 +77,10 @@ describe("fingerprint", () => {
         name: "fingerprintId",
         value: fingerprintId,
         httpOnly: true,
+        secure: true,
+        sameSite: "lax",
         path: "/",
-        maxAge: 31536000,
+        maxAge: 2592000,
       });
     });
 
@@ -102,7 +106,7 @@ describe("fingerprint", () => {
       expect(callArgs.path).toBe("/");
     });
 
-    it("should set maxAge to 1 year (31536000 seconds)", async () => {
+    it("should set maxAge to 30 days (2592000 seconds)", async () => {
       const mockSet = vi.fn();
       const mockCookies = { set: mockSet };
       vi.mocked(cookies).mockResolvedValue(mockCookies as any);
@@ -110,8 +114,8 @@ describe("fingerprint", () => {
       await setFingerprintIdCookie("test-id");
 
       const callArgs = mockSet.mock.calls[0][0];
-      expect(callArgs.maxAge).toBe(31536000);
-      expect(callArgs.maxAge).toBe(365 * 24 * 60 * 60);
+      expect(callArgs.maxAge).toBe(2592000);
+      expect(callArgs.maxAge).toBe(30 * 24 * 60 * 60);
     });
 
     it("should handle special characters in fingerprint ID", async () => {
@@ -223,8 +227,10 @@ describe("fingerprint", () => {
         name: "fingerprintId",
         value: newUuid,
         httpOnly: true,
+        secure: true,
+        sameSite: "lax",
         path: "/",
-        maxAge: 31536000,
+        maxAge: 2592000,
       });
     });
 

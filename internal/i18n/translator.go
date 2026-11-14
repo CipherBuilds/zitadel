@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-11-09: a missing message translation logs only the message ID and the error, never the message data.
+
 package i18n
 
 import (
@@ -166,7 +168,8 @@ func localize(localizer *i18n.Localizer, id string, args map[string]interface{})
 		TemplateData: args,
 	})
 	if err != nil {
-		logging.WithFields("id", id, "args", args).WithError(err).Warnf("missing translation")
+		// Copperholt: never log the template data; it carries the user's names, email, phone and one-time codes.
+		logging.WithFields("id", id).WithError(err).Warnf("missing translation")
 		return id
 	}
 	return s

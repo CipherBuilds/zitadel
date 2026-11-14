@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-11-08: sign-in cookies are Secure, HttpOnly and SameSite=Lax, and fingerprintId lasts 30 days instead of one year.
+
 import { create } from "@zitadel/client";
 import { UserAgent, UserAgentSchema } from "@zitadel/proto/zitadel/session/v2/session_pb";
 import { cookies, headers } from "next/headers";
@@ -15,8 +17,10 @@ export async function setFingerprintIdCookie(fingerprintId: string) {
     name: "fingerprintId",
     value: fingerprintId,
     httpOnly: true,
+    secure: true,
+    sameSite: "lax",
     path: "/",
-    maxAge: 31536000, // 1 year
+    maxAge: 2592000, // 30 days (Copperholt: Compliance data minimisation, 8 Nov 2026)
   });
 }
 

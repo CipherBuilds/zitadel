@@ -1,3 +1,5 @@
+This is a modified version of ZITADEL 4.16.2, published by Copperholt Ltd under the GNU Affero General Public License v3.0 so that users of our sign-in service can get its source code. The changes we made are listed in NOTICE. It is provided without any warranty, as set out in LICENSE. To report a security issue, email security@copperholt.io.
+
 <p align="center">
     <img src="./apps/docs/public/img/logos/zitadel-logo-dark@2x.png#gh-light-mode-only" alt="ZITADEL Logo" max-height="200px" width="auto" />
     <img src="./apps/docs/public/img/logos/zitadel-logo-light@2x.png#gh-dark-mode-only" alt="ZITADEL Logo" max-height="200px" width="auto" />

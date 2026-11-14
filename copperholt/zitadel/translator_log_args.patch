@@ -1,0 +1,12 @@
+--- a/internal/i18n/translator.go
++++ b/internal/i18n/translator.go
+@@ -166,7 +166,8 @@ func localize(localizer *i18n.Localizer, id string, args map[string]interface{})
+ 		TemplateData: args,
+ 	})
+ 	if err != nil {
+-		logging.WithFields("id", id, "args", args).WithError(err).Warnf("missing translation")
++		// Copperholt: never log the template data; it carries the user's names, email, phone and one-time codes.
++		logging.WithFields("id", id).WithError(err).Warnf("missing translation")
+ 		return id
+ 	}
+ 	return s

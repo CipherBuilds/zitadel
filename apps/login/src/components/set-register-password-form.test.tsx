@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 import { cleanup, render } from "@testing-library/react";
 import { create } from "@zitadel/client";
 import { PasswordComplexitySettingsSchema } from "@zitadel/proto/zitadel/settings/v2/password_settings_pb";
@@ -21,7 +23,7 @@ vi.mock("@/lib/client", () => ({
 }));
 
 const defaultComplexitySettings = create(PasswordComplexitySettingsSchema, {
-  minLength: 8n,
+  minLength: BigInt(8),
   requiresUppercase: false,
   requiresLowercase: false,
   requiresNumber: false,

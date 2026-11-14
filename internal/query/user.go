@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-10-30: a failed user query or row read is reported as an internal error, never as user not found.
+
 package query
 
 import (
@@ -1040,7 +1042,7 @@ func scanUser(row *sql.Row) (*User, error) {
 	)
 
 	if err != nil || count != 1 {
-		if errors.Is(err, sql.ErrNoRows) || count != 1 {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, zerrors.ThrowNotFound(err, "QUERY-Dfbg2", "Errors.User.NotFound")
 		}
 		return nil, zerrors.ThrowInternal(err, "QUERY-Bgah2", "Errors.Internal")
@@ -1323,7 +1325,7 @@ func scanNotifyUser(row *sql.Row) (*NotifyUser, error) {
 	)
 
 	if err != nil || count != 1 {
-		if errors.Is(err, sql.ErrNoRows) || count != 1 {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, zerrors.ThrowNotFound(err, "QUERY-Dgqd2", "Errors.User.NotFound")
 		}
 		return nil, zerrors.ThrowInternal(err, "QUERY-Dbwsg", "Errors.Internal")

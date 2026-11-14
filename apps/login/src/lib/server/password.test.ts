@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 import { Code, ConnectError } from "@connectrpc/connect";
 import { AuthenticationMethodType } from "@zitadel/proto/zitadel/user/v2/user_service_pb";
 import { beforeEach, describe, expect, test, vi } from "vitest";
@@ -327,7 +329,7 @@ describe("sendPassword", () => {
 
     const verifyHelper = await import("../verify-helper");
     vi.mocked(verifyHelper.checkPasswordChangeRequired).mockReturnValue(undefined);
-    vi.mocked(verifyHelper.checkEmailVerification).mockReturnValue(undefined);
+    vi.mocked(verifyHelper.checkEmailVerification).mockResolvedValue(undefined);
     vi.mocked(verifyHelper.checkMFAFactors).mockResolvedValue(undefined);
 
     mockHeaders.mockResolvedValue({});

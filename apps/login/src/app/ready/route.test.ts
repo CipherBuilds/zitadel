@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 import { createServiceForHost } from "@/lib/service";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { GET } from "./route";
@@ -11,19 +13,12 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 describe("GET /ready", () => {
-  let savedApiUrl: string | undefined;
-
   beforeEach(() => {
-    savedApiUrl = process.env.ZITADEL_API_URL;
-    process.env.ZITADEL_API_URL = "http://localhost:8080";
+    vi.stubEnv("ZITADEL_API_URL", "http://localhost:8080");
   });
 
   afterEach(() => {
-    if (savedApiUrl === undefined) {
-      delete process.env.ZITADEL_API_URL;
-    } else {
-      process.env.ZITADEL_API_URL = savedApiUrl;
-    }
+    vi.unstubAllEnvs();
     vi.restoreAllMocks();
   });
 
@@ -62,7 +57,7 @@ describe("GET /ready", () => {
   });
 
   test("should return 503 when ZITADEL_API_URL is not set", async () => {
-    delete process.env.ZITADEL_API_URL;
+    vi.stubEnv("ZITADEL_API_URL", undefined);
 
     const response = await GET();
 

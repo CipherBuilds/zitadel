@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -761,7 +763,7 @@ describe("checkMFAFactors", () => {
       },
     };
 
-    const result = await checkMFAFactors("https://example.com", sessionWithPasskey, mockLoginSettings, []);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, sessionWithPasskey, mockLoginSettings, []);
 
     expect(result).toBeUndefined();
   });
@@ -769,7 +771,7 @@ describe("checkMFAFactors", () => {
   it("should redirect to TOTP if only TOTP is available", async () => {
     const authMethods = [AuthenticationMethodType.TOTP];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods);
 
     expect(result).toEqual({
       redirect: expect.stringContaining("/otp/time-based"),
@@ -779,7 +781,7 @@ describe("checkMFAFactors", () => {
   it("should redirect to OTP SMS if only OTP_SMS is available", async () => {
     const authMethods = [AuthenticationMethodType.OTP_SMS];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods);
 
     expect(result).toEqual({
       redirect: expect.stringContaining("/otp/sms"),
@@ -789,7 +791,7 @@ describe("checkMFAFactors", () => {
   it("should redirect to OTP Email if only OTP_EMAIL is available", async () => {
     const authMethods = [AuthenticationMethodType.OTP_EMAIL];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods);
 
     expect(result).toEqual({
       redirect: expect.stringContaining("/otp/email"),
@@ -799,7 +801,7 @@ describe("checkMFAFactors", () => {
   it("should redirect to U2F if only U2F is available", async () => {
     const authMethods = [AuthenticationMethodType.U2F];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods);
 
     expect(result).toEqual({
       redirect: expect.stringContaining("/u2f"),
@@ -809,7 +811,7 @@ describe("checkMFAFactors", () => {
   it("should redirect to MFA selection page if multiple factors available", async () => {
     const authMethods = [AuthenticationMethodType.TOTP, AuthenticationMethodType.OTP_SMS];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods);
 
     expect(result).toEqual({
       redirect: expect.stringContaining("/mfa?"),
@@ -819,7 +821,7 @@ describe("checkMFAFactors", () => {
   it("should include organization in redirect params", async () => {
     const authMethods = [AuthenticationMethodType.TOTP];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods, "custom-org");
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods, "custom-org");
 
     expect(result?.redirect).toContain("organization=custom-org");
   });
@@ -828,7 +830,7 @@ describe("checkMFAFactors", () => {
     const authMethods = [AuthenticationMethodType.TOTP];
 
     const result = await checkMFAFactors(
-      "https://example.com",
+      { baseUrl: "https://example.com" },
       mockSession,
       mockLoginSettings,
       authMethods,
@@ -842,7 +844,7 @@ describe("checkMFAFactors", () => {
   it("should ignore non-MFA authentication methods", async () => {
     const authMethods = [AuthenticationMethodType.PASSWORD, AuthenticationMethodType.PASSKEY];
 
-    const result = await checkMFAFactors("https://example.com", mockSession, mockLoginSettings, authMethods);
+    const result = await checkMFAFactors({ baseUrl: "https://example.com" }, mockSession, mockLoginSettings, authMethods);
 
     expect(result).toBeUndefined();
   });

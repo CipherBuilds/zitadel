@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-11-08: sign-in cookies are Secure, HttpOnly and SameSite=Lax, and fingerprintId lasts 30 days instead of one year.
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   Cookie,
@@ -63,6 +65,8 @@ describe("cookies", () => {
         name: "NEXT_LOCALE",
         value: "en",
         httpOnly: true,
+        secure: true,
+        sameSite: "lax",
         path: "/",
       });
     });

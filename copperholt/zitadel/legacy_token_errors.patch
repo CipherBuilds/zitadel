@@ -1,0 +1,89 @@
+--- a/internal/auth/repository/eventsourcing/eventstore/token.go
++++ b/internal/auth/repository/eventsourcing/eventstore/token.go
+@@ -4,11 +4,10 @@
+ 	"context"
+ 	"time"
+ 
+-	"github.com/zitadel/logging"
+-
+ 	"github.com/zitadel/zitadel/internal/api/authz"
+ 	"github.com/zitadel/zitadel/internal/auth/repository/eventsourcing/view"
+ 	"github.com/zitadel/zitadel/internal/eventstore"
++	"github.com/zitadel/zitadel/internal/query"
+ 	"github.com/zitadel/zitadel/internal/telemetry/tracing"
+ 	usr_model "github.com/zitadel/zitadel/internal/user/model"
+ 	usr_view "github.com/zitadel/zitadel/internal/user/repository/view"
+@@ -16,27 +15,40 @@
+ 	"github.com/zitadel/zitadel/internal/zerrors"
+ )
+ 
++type tokenProjection interface {
++	GetLatestTokenSequence(context.Context, string) (*query.CurrentState, error)
++	TokenByIDs(string, string, string) (*model.TokenView, error)
++}
++
++var _ tokenProjection = (*view.View)(nil)
++
+ type TokenRepo struct {
+ 	Eventstore *eventstore.Eventstore
+-	View       *view.View
++	View       tokenProjection
+ }
+ 
+ func (repo *TokenRepo) TokenByIDs(ctx context.Context, userID, tokenID string) (_ *usr_model.TokenView, err error) {
+ 	ctx, span := tracing.NewSpan(ctx)
+ 	defer func() { span.EndWithError(err) }()
+ 
++	if ctx.Err() != nil {
++		return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN1", "Errors.Internal")
++	}
+ 	instanceID := authz.GetInstance(ctx).InstanceID()
+ 
+ 	// always load the latest sequence first, so in case the token was not found by id,
+ 	// the sequence will be equal or lower than the actual projection and no events are lost
+ 	sequence, err := repo.View.GetLatestTokenSequence(ctx, instanceID)
+-	logging.WithFields("instanceID", instanceID, "userID", userID, "tokenID", tokenID).
+-		OnError(err).
+-		Errorf("could not get current sequence for TokenByIDs")
++	if err != nil {
++		return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN2", "Errors.Internal")
++	}
+ 
+ 	token, viewErr := repo.View.TokenByIDs(tokenID, userID, instanceID)
+ 	if viewErr != nil && !zerrors.IsNotFound(viewErr) {
+-		return nil, viewErr
++		return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN3", "Errors.Internal")
++	}
++	if viewErr == nil && token == nil {
++		return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN4", "Errors.Internal")
+ 	}
+ 	if zerrors.IsNotFound(viewErr) {
+ 
+@@ -50,20 +62,20 @@
+ 	}
+ 
+ 	events, esErr := repo.getUserEvents(ctx, userID, token.InstanceID, token.ChangeDate, token.GetRelevantEventTypes())
++	if esErr != nil || ctx.Err() != nil {
++		return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN5", "Errors.Internal")
++	}
+ 	if zerrors.IsNotFound(viewErr) && len(events) == 0 {
+ 		return nil, zerrors.ThrowNotFound(nil, "EVENT-4T90g", "Errors.Token.NotFound")
+ 	}
+-
+-	if esErr != nil {
+-		logging.Log("EVENT-5Nm9s").WithError(viewErr).WithField("traceID", tracing.TraceIDFromCtx(ctx)).Debug("error retrieving new events")
+-		return model.TokenViewToModel(token), nil
+-	}
+-	viewToken := *token
+ 	for _, event := range events {
+ 		err := token.AppendEventIfMyToken(event)
+ 		if err != nil {
+-			return model.TokenViewToModel(&viewToken), nil
++			return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN6", "Errors.Internal")
+ 		}
++	}
++	if ctx.Err() != nil {
++		return nil, zerrors.ThrowInternal(nil, "COPPERHOLT-TKN7", "Errors.Internal")
+ 	}
+ 	if !token.Expiration.After(time.Now().UTC()) || token.Deactivated {
+ 		return nil, zerrors.ThrowNotFound(nil, "EVENT-5Bm9s", "Errors.Token.NotFound")

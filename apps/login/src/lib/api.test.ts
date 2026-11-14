@@ -1,16 +1,20 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 // @vitest-environment node
 import { newSystemToken } from "@zitadel/client/node";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { generateKeyPairSync } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-const execAsync = promisify(exec);
-
-const { stdout: pkcs1Key } = await execAsync(
-  "openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null | openssl rsa -traditional 2>/dev/null",
-);
-
-const { stdout: pkcs8Key } = await execAsync("openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null");
+const { privateKey: pkcs1Key } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs1", format: "pem" },
+});
+const { privateKey: pkcs8Key } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+});
 
 describe("newSystemToken key format support", () => {
   test("should sign a JWT with a PKCS#8 key (BEGIN PRIVATE KEY)", async () => {

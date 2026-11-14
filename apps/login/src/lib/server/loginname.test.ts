@@ -1,9 +1,18 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 import { PasskeysType } from "@zitadel/proto/zitadel/settings/v2/login_settings_pb";
 import { UserState } from "@zitadel/proto/zitadel/user/v2/user_pb";
 import { AuthenticationMethodType } from "@zitadel/proto/zitadel/user/v2/user_service_pb";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { getIDPByID } from "../zitadel";
 import { sendLoginname } from "./loginname";
+
+function redirectFrom(result: Awaited<ReturnType<typeof sendLoginname>>): string {
+  if (!result || !("redirect" in result) || typeof result.redirect !== "string") {
+    throw new Error("Expected a redirect response");
+  }
+  return result.redirect;
+}
 
 // Mock all the dependencies
 vi.mock("next/headers", () => ({
@@ -463,7 +472,7 @@ describe("sendLoginname", () => {
         });
 
         expect(result).toBeDefined();
-        expect(result?.redirect).toMatch(/^\/password\?/);
+        expect(redirectFrom(result)).toMatch(/^\/password\?/);
       });
 
       test("should return error when password is only method in multi-method scenario but not allowed", async () => {
@@ -521,10 +530,10 @@ describe("sendLoginname", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.redirect).toMatch(/^\/register\?/);
-      expect(result?.redirect).toContain("organization=org123");
-      expect(result?.redirect).toContain("requestId=req123");
-      expect(result?.redirect).toContain("email=user%40example.com");
+      expect(redirectFrom(result)).toMatch(/^\/register\?/);
+      expect(redirectFrom(result)).toContain("organization=org123");
+      expect(redirectFrom(result)).toContain("requestId=req123");
+      expect(redirectFrom(result)).toContain("email=user%40example.com");
     });
 
     test("should redirect to password when ignoreUnknownUsernames is true", async () => {
@@ -541,10 +550,10 @@ describe("sendLoginname", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.redirect).toMatch(/^\/password\?/);
-      expect(result?.redirect).toContain("loginName=user%40example.com");
-      expect(result?.redirect).toContain("requestId=req123");
-      expect(result?.redirect).toContain("organization=org123");
+      expect(redirectFrom(result)).toMatch(/^\/password\?/);
+      expect(redirectFrom(result)).toContain("loginName=user%40example.com");
+      expect(redirectFrom(result)).toContain("requestId=req123");
+      expect(redirectFrom(result)).toContain("organization=org123");
     });
 
     test("should return error when user not found and no registration allowed", async () => {
@@ -736,10 +745,10 @@ describe("sendLoginname", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.redirect).toMatch(/^\/register\?/);
-      expect(result?.redirect).toContain("organization=discovered-org-123");
-      expect(result?.redirect).toContain("requestId=req123");
-      expect(result?.redirect).toContain("email=user%40example.com");
+      expect(redirectFrom(result)).toMatch(/^\/register\?/);
+      expect(redirectFrom(result)).toContain("organization=discovered-org-123");
+      expect(redirectFrom(result)).toContain("requestId=req123");
+      expect(redirectFrom(result)).toContain("email=user%40example.com");
 
       // Verify org discovery was called with correct domain
       expect(mockGetOrgsByDomain).toHaveBeenCalledWith({
@@ -856,8 +865,8 @@ describe("sendLoginname", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.redirect).toMatch(/^\/register\?/);
-      expect(result?.redirect).toContain("organization=123456");
+      expect(redirectFrom(result)).toMatch(/^\/register\?/);
+      expect(redirectFrom(result)).toContain("organization=123456");
 
       // Verify org discovery was NOT called since org was provided
       expect(mockGetOrgsByDomain).not.toHaveBeenCalled();
@@ -1201,8 +1210,8 @@ describe("sendLoginname", () => {
       });
 
       expect(result).toBeDefined();
-      expect(result?.redirect).toContain("organization=custom-org");
-      expect(result?.redirect).toContain("requestId=req123");
+      expect(redirectFrom(result)).toContain("organization=custom-org");
+      expect(redirectFrom(result)).toContain("requestId=req123");
     });
 
     test("should redirect to password with INPUT loginName when ignoreUnknownUsernames is true, even if user preferredLoginName is different", async () => {

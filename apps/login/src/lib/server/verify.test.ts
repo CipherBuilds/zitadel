@@ -1,3 +1,5 @@
+// Modified by Copperholt Ltd on 2026-10-30: unit tests follow the current function signatures (test files only).
+
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { sendVerification, trySendVerification, verifyTOTP } from "./verify";
 
@@ -231,11 +233,9 @@ describe("sendVerification", () => {
 describe("trySendVerification", () => {
   let mockSendEmailCode: any;
   let mockCreateInviteCode: any;
-  let originalBasePath: string | undefined;
 
   beforeEach(() => {
-    originalBasePath = process.env.NEXT_PUBLIC_BASE_PATH;
-    process.env.NEXT_PUBLIC_BASE_PATH = "/ui/v2/login";
+    vi.stubEnv("NEXT_PUBLIC_BASE_PATH", "/ui/v2/login");
 
     vi.clearAllMocks();
     mockSendEmailCode = zitadelSendEmailCode;
@@ -245,11 +245,7 @@ describe("trySendVerification", () => {
   });
 
   afterEach(() => {
-    if (originalBasePath === undefined) {
-      delete process.env.NEXT_PUBLIC_BASE_PATH;
-    } else {
-      process.env.NEXT_PUBLIC_BASE_PATH = originalBasePath;
-    }
+    vi.unstubAllEnvs();
   });
 
   test("should call sendEmailCode with correct URL template for non-invite and return true", async () => {
