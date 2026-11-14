@@ -51,11 +51,24 @@ RUN sha256sum -c /opt/copperholt-login-cookies/login-cookie-flags.before.sha256 
     && git apply --whitespace=error-all /opt/copperholt-login-cookies/login-cookie-flags.patch \
     && sha256sum -c /opt/copperholt-login-cookies/login-cookie-flags.after.sha256 \
     && rm -r /opt/copperholt-login-cookies
+# AGPL-3.0 section 13 source offer (LIC-FIX01, Compliance FINAL wording of 14 Nov
+# 2026): every page the login serves (the (login) layout, its loading fallback and
+# the global error page) shows the footer line with the "Source code" link to the
+# published fork. The regression test below pins the wording and that every root
+# layout renders it.
+COPY login-source-offer.patch login-source-offer.before.sha256 login-source-offer.after.sha256 /opt/copperholt-login-source-offer/
+COPY copperholt-source-offer.test.tsx /src/apps/login/src/components/copperholt-source-offer.test.tsx
+RUN sha256sum -c /opt/copperholt-login-source-offer/login-source-offer.before.sha256 \
+    && git apply --check --whitespace=error-all /opt/copperholt-login-source-offer/login-source-offer.patch \
+    && git apply --whitespace=error-all /opt/copperholt-login-source-offer/login-source-offer.patch \
+    && sha256sum -c /opt/copperholt-login-source-offer/login-source-offer.after.sha256 \
+    && rm -r /opt/copperholt-login-source-offer
 RUN pnpm nx run --nxBail @zitadel/login:build
 COPY summarize-login-tests.cjs /opt/copperholt-login-tests/summarize-login-tests.cjs
 RUN --network=none pnpm --dir apps/login exec vitest run --maxWorkers=2 \
       src/app/ready/route.test.ts \
       src/components/change-password-form.test.tsx \
+      src/components/copperholt-source-offer.test.tsx \
       src/components/set-password-form.test.tsx \
       src/components/set-register-password-form.test.tsx \
       src/lib/api.test.ts \

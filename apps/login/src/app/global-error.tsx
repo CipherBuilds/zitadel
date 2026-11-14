@@ -1,7 +1,10 @@
+// Modified by Copperholt Ltd on 2026-11-14: every sign-in page shows the AGPL-3.0 source offer with a link to this repository.
+
 "use client";
 
 import { Boundary } from "@/components/boundary";
 import { Button } from "@/components/button";
+import { CopperholtSourceOffer } from "@/components/copperholt-source-offer";
 import { ThemeWrapper } from "@/components/theme-wrapper";
 import { Translated } from "@/components/translated";
 
@@ -23,6 +26,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
               </div>
             </div>
           </Boundary>
+          <CopperholtSourceOffer />
         </ThemeWrapper>
       </body>
     </html>

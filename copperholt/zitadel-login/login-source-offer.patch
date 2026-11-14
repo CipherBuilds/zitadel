@@ -1,0 +1,83 @@
+diff --git a/apps/login/src/app/(login)/layout.tsx b/apps/login/src/app/(login)/layout.tsx
+index aee7c1d..3424b5c 100644
+--- a/apps/login/src/app/(login)/layout.tsx
++++ b/apps/login/src/app/(login)/layout.tsx
+@@ -1,6 +1,7 @@
+ import "@/styles/globals.scss";
+ 
+ import { BackgroundWrapper } from "@/components/background-wrapper";
++import { CopperholtSourceOffer } from "@/components/copperholt-source-offer";
+ import { LanguageProvider } from "@/components/language-provider";
+ import { LanguageSwitcher } from "@/components/language-switcher";
+ import { Skeleton } from "@/components/skeleton";
+@@ -60,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
+                     <div className="flex flex-row items-center justify-end space-x-4 py-4">
+                       <ThemeSwitch />
+                     </div>
++                    <CopperholtSourceOffer />
+                   </div>
+                 </BackgroundWrapper>
+               }
+@@ -74,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
+                       <LanguageSwitcher languages={languages} />
+                       <ThemeSwitch />
+                     </div>
++                    <CopperholtSourceOffer />
+                   </div>
+                 </BackgroundWrapper>
+               </LanguageProvider>
+diff --git a/apps/login/src/app/global-error.tsx b/apps/login/src/app/global-error.tsx
+index db56324..acbb416 100644
+--- a/apps/login/src/app/global-error.tsx
++++ b/apps/login/src/app/global-error.tsx
+@@ -2,6 +2,7 @@
+ 
+ import { Boundary } from "@/components/boundary";
+ import { Button } from "@/components/button";
++import { CopperholtSourceOffer } from "@/components/copperholt-source-offer";
+ import { ThemeWrapper } from "@/components/theme-wrapper";
+ import { Translated } from "@/components/translated";
+ 
+@@ -23,6 +24,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
+               </div>
+             </div>
+           </Boundary>
++          <CopperholtSourceOffer />
+         </ThemeWrapper>
+       </body>
+     </html>
+diff --git a/apps/login/src/components/copperholt-source-offer.tsx b/apps/login/src/components/copperholt-source-offer.tsx
+new file mode 100644
+index 0000000..8519f32
+--- /dev/null
++++ b/apps/login/src/components/copperholt-source-offer.tsx
+@@ -0,0 +1,29 @@
++// AGPL-3.0 section 13 source offer (LIC-FIX01). Compliance FINAL wording of 14 Nov 2026, unchanged:
++// shown on every page this modified login UI serves, with "Source code" linking to the published fork.
++export const COPPERHOLT_SOURCE_OFFER =
++  "This sign-in service runs a modified version of ZITADEL, free software under the GNU Affero General Public " +
++  "License v3.0. Get the source code of the version running here, free of charge:";
++export const COPPERHOLT_SOURCE_LABEL = "Source code";
++export const COPPERHOLT_SOURCE_URL = "https://github.com/cipherbuilds/zitadel";
++
++export function CopperholtSourceOffer() {
++  return (
++    <footer
++      className="mx-auto max-w-[440px] px-4 pb-4 text-center text-xs text-gray-600 dark:text-gray-400 md:max-w-full md:px-8"
++      data-testid="copperholt-source-offer"
++    >
++      <p>
++        {COPPERHOLT_SOURCE_OFFER}{" "}
++        <a
++          href={COPPERHOLT_SOURCE_URL}
++          className="underline"
++          target="_blank"
++          rel="noopener noreferrer"
++          data-testid="copperholt-source-link"
++        >
++          {COPPERHOLT_SOURCE_LABEL}
++        </a>
++      </p>
++    </footer>
++  );
++}

@@ -1,6 +1,9 @@
+// Modified by Copperholt Ltd on 2026-11-14: every sign-in page shows the AGPL-3.0 source offer with a link to this repository.
+
 import "@/styles/globals.scss";
 
 import { BackgroundWrapper } from "@/components/background-wrapper";
+import { CopperholtSourceOffer } from "@/components/copperholt-source-offer";
 import { LanguageProvider } from "@/components/language-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Skeleton } from "@/components/skeleton";
@@ -60,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     <div className="flex flex-row items-center justify-end space-x-4 py-4">
                       <ThemeSwitch />
                     </div>
+                    <CopperholtSourceOffer />
                   </div>
                 </BackgroundWrapper>
               }
@@ -74,6 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                       <LanguageSwitcher languages={languages} />
                       <ThemeSwitch />
                     </div>
+                    <CopperholtSourceOffer />
                   </div>
                 </BackgroundWrapper>
               </LanguageProvider>
