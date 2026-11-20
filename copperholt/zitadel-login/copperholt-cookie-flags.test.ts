@@ -3,6 +3,10 @@
 // Test scan found fingerprintId and NEXT_LOCALE without Secure. This scans the
 // whole login source so a cookie setter added by a later upstream revision
 // fails the image build until it carries the same flags.
+// ZITADEL-UP01 (v4.20.4): the setters moved to lib/server/; setBrowserCookie
+// (fingerprintId, bindingId, verificationCheck, deviceCodeCheck) and the
+// sessions cookie use SameSite=None only when iframe embedding is enabled,
+// which Copperholt never enables, and Lax otherwise.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -42,12 +46,10 @@ describe("Copperholt sign-in host cookie flags", () => {
   );
 
   it("finds the known cookie setters", () => {
-    expect(setters.map((setter) => setter.path).sort()).toEqual([
-      "lib/cookies.ts",
-      "lib/cookies.ts",
-      "lib/fingerprint.ts",
-      "lib/server/register.ts",
-      "lib/server/verify.ts",
+    expect(setters.map((setter) => setter.path).sort((a, b) => a.localeCompare(b))).toEqual([
+      "lib/server/cookies.ts",
+      "lib/server/cookies.ts",
+      "lib/server/fingerprint.ts",
     ]);
   });
 
@@ -55,14 +57,19 @@ describe("Copperholt sign-in host cookie flags", () => {
     for (const { path, call } of setters) {
       expect(call, `${path} sets Secure`).toMatch(/secure:\s*(true|process\.env\.NODE_ENV === "production")/);
       expect(call, `${path} sets HttpOnly`).toMatch(/httpOnly:\s*true/);
-      expect(call, `${path} sets SameSite`).toMatch(/sameSite:\s*("lax"|resolvedSameSite)/);
+      expect(call, `${path} sets SameSite`).toMatch(/sameSite:\s*("lax"|resolvedSameSite|iFrameEnabled \? "none" : "lax")/);
     }
   });
 
-  // Compliance (8 Nov 2026, cookie policy v14): fingerprintId lasts 30 days.
+  // Compliance (8 Nov 2026, cookie policy v14): fingerprintId lasts 30 days. It (and bindingId) is set through
+  // setBrowserCookie without a lifetime, so that setter's default is the cookie's lifetime.
   it("keeps fingerprintId for 30 days", () => {
-    const fingerprint = setters.filter((setter) => setter.path === "lib/fingerprint.ts");
+    const fingerprint = setters.filter((setter) => setter.path === "lib/server/fingerprint.ts");
     expect(fingerprint).toHaveLength(1);
-    expect(fingerprint[0].call).toMatch(/maxAge:\s*2592000\b/);
+    expect(fingerprint[0].call).toMatch(/\bmaxAge,/);
+    const source = readFileSync(join(ROOT, "lib/server/fingerprint.ts"), "utf8");
+    expect(source).toMatch(/export async function setBrowserCookie\(name: string, value: string, maxAge: number = 2592000\)/);
+    expect(source).toMatch(/return getOrSetBrowserCookie\("fingerprintId"\);/);
+    expect(source).not.toMatch(/31536000/);
   });
 });

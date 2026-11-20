@@ -1,6 +1,6 @@
 --- a/internal/query/user.go
 +++ b/internal/query/user.go
-@@ -1040,7 +1040,7 @@ func scanUser(row *sql.Row)
+@@ -965,7 +965,7 @@ func scanUser(row *sql.Row)
  	)
  
  	if err != nil || count != 1 {
@@ -9,7 +9,7 @@
  			return nil, zerrors.ThrowNotFound(err, "QUERY-Dfbg2", "Errors.User.NotFound")
  		}
  		return nil, zerrors.ThrowInternal(err, "QUERY-Bgah2", "Errors.Internal")
-@@ -1323,7 +1323,7 @@ func scanNotifyUser(row *sql.Row)
+@@ -1248,7 +1248,7 @@ func scanNotifyUser(row *sql.Row)
  	)
  
  	if err != nil || count != 1 {

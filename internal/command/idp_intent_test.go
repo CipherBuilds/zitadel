@@ -34,6 +34,7 @@ import (
 	"github.com/zitadel/zitadel/internal/repository/idpintent"
 	"github.com/zitadel/zitadel/internal/repository/instance"
 	"github.com/zitadel/zitadel/internal/repository/org"
+	"github.com/zitadel/zitadel/internal/test"
 	"github.com/zitadel/zitadel/internal/zerrors"
 )
 
@@ -428,7 +429,7 @@ func TestCommands_CreateIntent(t *testing.T) {
 func TestCommands_AuthFromProvider(t *testing.T) {
 	type fields struct {
 		eventstore   func(t *testing.T) *eventstore.Eventstore
-		secretCrypto crypto.EncryptionAlgorithm
+		secretCrypto crypto.AuthEncryptionAlgorithm
 		idGenerator  id.Generator
 	}
 	type args struct {
@@ -452,7 +453,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 		{
 			"error no id generator",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore:   expectEventstore(),
 				idGenerator:  mock.NewIDGeneratorExpectError(t, zerrors.ThrowInternal(nil, "", "error id")),
 			},
@@ -468,7 +469,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 		{
 			"idp not existing",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(),
 				),
@@ -486,7 +487,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 		{
 			"idp removed",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(
 						eventFromEventPusherWithInstanceID(
@@ -531,7 +532,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 		{
 			"oauth auth redirect",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(
 						eventFromEventPusherWithInstanceID(
@@ -593,7 +594,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 		{
 			"oauth auth redirect with login_hint",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(
 						eventFromEventPusherWithInstanceID(
@@ -656,7 +657,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 		{
 			"migrated and push",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(
 						eventFromEventPusherWithInstanceID(
@@ -741,7 +742,8 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 				callbackURL: "url",
 			},
 			res{
-				auth: &idp.RedirectAuth{RedirectURL: "https://login.microsoftonline.com/tenant/oauth2/v2.0/authorize?client_id=clientID&prompt=select_account&redirect_uri=url&response_type=code&scope=openid+profile+User.Read&state=id"},
+				auth:       &idp.RedirectAuth{RedirectURL: "https://login.microsoftonline.com/tenant/oauth2/v2.0/authorize?client_id=clientID&prompt=select_account&redirect_uri=url&response_type=code&scope=openid+profile+User.Read&state=id"},
+				expectPKCE: true,
 			},
 		},
 	}
@@ -760,8 +762,7 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 				got, err = session.GetAuth(tt.args.ctx)
 				assert.NoError(t, err)
 				if tt.res.expectPKCE {
-					assertRedirectAuthWithPKCE(t, tt.res.auth, got)
-					assert.NotEmpty(t, session.PersistentParameters()[oauth.CodeVerifier])
+					test.AssertRedirectAuthWithPKCE(t, tt.res.auth, got, session.PersistentParameters())
 				} else {
 					assert.Equal(t, tt.res.auth, got)
 				}
@@ -770,36 +771,10 @@ func TestCommands_AuthFromProvider(t *testing.T) {
 	}
 }
 
-func assertRedirectAuthWithPKCE(t *testing.T, expected, actual idp.Auth) {
-	t.Helper()
-
-	expectedRedirect, ok := expected.(*idp.RedirectAuth)
-	require.True(t, ok)
-	actualRedirect, ok := actual.(*idp.RedirectAuth)
-	require.True(t, ok)
-
-	expectedURL, err := url.Parse(expectedRedirect.RedirectURL)
-	require.NoError(t, err)
-	actualURL, err := url.Parse(actualRedirect.RedirectURL)
-	require.NoError(t, err)
-
-	actualQuery := actualURL.Query()
-	assert.NotEmpty(t, actualQuery.Get("code_challenge"))
-	assert.Equal(t, "S256", actualQuery.Get("code_challenge_method"))
-
-	actualQuery.Del("code_challenge")
-	actualQuery.Del("code_challenge_method")
-
-	assert.Equal(t, expectedURL.Scheme, actualURL.Scheme)
-	assert.Equal(t, expectedURL.Host, actualURL.Host)
-	assert.Equal(t, expectedURL.Path, actualURL.Path)
-	assert.Equal(t, expectedURL.Query(), actualQuery)
-}
-
 func TestCommands_AuthFromProvider_SAML(t *testing.T) {
 	type fields struct {
 		eventstore   func(t *testing.T) *eventstore.Eventstore
-		secretCrypto crypto.EncryptionAlgorithm
+		secretCrypto crypto.AuthEncryptionAlgorithm
 		idGenerator  id.Generator
 	}
 	type args struct {
@@ -823,7 +798,7 @@ func TestCommands_AuthFromProvider_SAML(t *testing.T) {
 		{
 			"saml auth default redirect",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(
 						eventFromEventPusherWithInstanceID(
@@ -918,7 +893,7 @@ func TestCommands_AuthFromProvider_SAML(t *testing.T) {
 		{
 			"saml post auth",
 			fields{
-				secretCrypto: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				secretCrypto: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectFilter(
 						eventFromEventPusherWithInstanceID(
@@ -1054,7 +1029,7 @@ func TestCommands_AuthFromProvider_SAML(t *testing.T) {
 func TestCommands_SucceedIDPIntent(t *testing.T) {
 	type fields struct {
 		eventstore          func(t *testing.T) *eventstore.Eventstore
-		idpConfigEncryption crypto.EncryptionAlgorithm
+		idpConfigEncryption crypto.AuthEncryptionAlgorithm
 	}
 	type args struct {
 		ctx        context.Context
@@ -1076,9 +1051,9 @@ func TestCommands_SucceedIDPIntent(t *testing.T) {
 		{
 			"encryption fails",
 			fields{
-				idpConfigEncryption: func() crypto.EncryptionAlgorithm {
-					m := crypto.NewMockEncryptionAlgorithm(gomock.NewController(t))
-					m.EXPECT().Encrypt(gomock.Any()).Return(nil, zerrors.ThrowInternal(nil, "id", "encryption failed"))
+				idpConfigEncryption: func() crypto.AuthEncryptionAlgorithm {
+					m := crypto.NewMockAuthEncryptionAlgorithm(gomock.NewController(t))
+					m.EXPECT().EncryptToken(gomock.Any()).Return("", zerrors.ThrowInternal(nil, "id", "encryption failed"))
 					return m
 				}(),
 				eventstore: expectEventstore(),
@@ -1094,9 +1069,9 @@ func TestCommands_SucceedIDPIntent(t *testing.T) {
 		{
 			"token encryption fails",
 			fields{
-				idpConfigEncryption: func() crypto.EncryptionAlgorithm {
-					m := crypto.NewMockEncryptionAlgorithm(gomock.NewController(t))
-					m.EXPECT().Encrypt(gomock.Any()).DoAndReturn(func(value []byte) ([]byte, error) {
+				idpConfigEncryption: func() crypto.AuthEncryptionAlgorithm {
+					m := crypto.NewMockAuthEncryptionAlgorithm(gomock.NewController(t))
+					m.EXPECT().EncryptToken(gomock.Any()).DoAndReturn(func(value string) (string, error) {
 						return value, nil
 					})
 					m.EXPECT().Encrypt(gomock.Any()).Return(nil, zerrors.ThrowInternal(nil, "id", "encryption failed"))
@@ -1122,7 +1097,7 @@ func TestCommands_SucceedIDPIntent(t *testing.T) {
 		{
 			"push",
 			fields{
-				idpConfigEncryption: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				idpConfigEncryption: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectPush(
 						func() eventstore.Command {
@@ -1173,7 +1148,7 @@ func TestCommands_SucceedIDPIntent(t *testing.T) {
 				}),
 			},
 			res{
-				token: "aWQ",
+				token: "id",
 			},
 		},
 	}
@@ -1193,7 +1168,7 @@ func TestCommands_SucceedIDPIntent(t *testing.T) {
 func TestCommands_SucceedSAMLIDPIntent(t *testing.T) {
 	type fields struct {
 		eventstore          func(t *testing.T) *eventstore.Eventstore
-		idpConfigEncryption crypto.EncryptionAlgorithm
+		idpConfigEncryption crypto.AuthEncryptionAlgorithm
 	}
 	type args struct {
 		ctx        context.Context
@@ -1215,9 +1190,9 @@ func TestCommands_SucceedSAMLIDPIntent(t *testing.T) {
 		{
 			"encryption fails",
 			fields{
-				idpConfigEncryption: func() crypto.EncryptionAlgorithm {
-					m := crypto.NewMockEncryptionAlgorithm(gomock.NewController(t))
-					m.EXPECT().Encrypt(gomock.Any()).Return(nil, zerrors.ThrowInternal(nil, "id", "encryption failed"))
+				idpConfigEncryption: func() crypto.AuthEncryptionAlgorithm {
+					m := crypto.NewMockAuthEncryptionAlgorithm(gomock.NewController(t))
+					m.EXPECT().EncryptToken(gomock.Any()).Return("", zerrors.ThrowInternal(nil, "id", "encryption failed"))
 					return m
 				}(),
 				eventstore: expectEventstore(),
@@ -1233,7 +1208,7 @@ func TestCommands_SucceedSAMLIDPIntent(t *testing.T) {
 		{
 			"push",
 			fields{
-				idpConfigEncryption: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				idpConfigEncryption: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectPush(
 						idpintent.NewSAMLSucceededEvent(
@@ -1265,16 +1240,16 @@ func TestCommands_SucceedSAMLIDPIntent(t *testing.T) {
 					UserInfoProfile: oidc.UserInfoProfile{
 						PreferredUsername: "username",
 					},
-				}),
-			},
-			res{
-				token: "aWQ",
-			},
+			}),
 		},
-		{
-			"push with userID",
+		res{
+			token: "id",
+		},
+	},
+	{
+		"push with userID",
 			fields{
-				idpConfigEncryption: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				idpConfigEncryption: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectPush(
 						idpintent.NewSAMLSucceededEvent(
@@ -1310,7 +1285,7 @@ func TestCommands_SucceedSAMLIDPIntent(t *testing.T) {
 				userID: "user",
 			},
 			res{
-				token: "aWQ",
+				token: "id",
 			},
 		},
 	}
@@ -1381,7 +1356,7 @@ func TestCommands_RequestSAMLIDPIntent(t *testing.T) {
 func TestCommands_SucceedLDAPIDPIntent(t *testing.T) {
 	type fields struct {
 		eventstore          func(t *testing.T) *eventstore.Eventstore
-		idpConfigEncryption crypto.EncryptionAlgorithm
+		idpConfigEncryption crypto.AuthEncryptionAlgorithm
 	}
 	type args struct {
 		ctx        context.Context
@@ -1403,9 +1378,9 @@ func TestCommands_SucceedLDAPIDPIntent(t *testing.T) {
 		{
 			"encryption fails",
 			fields{
-				idpConfigEncryption: func() crypto.EncryptionAlgorithm {
-					m := crypto.NewMockEncryptionAlgorithm(gomock.NewController(t))
-					m.EXPECT().Encrypt(gomock.Any()).Return(nil, zerrors.ThrowInternal(nil, "id", "encryption failed"))
+				idpConfigEncryption: func() crypto.AuthEncryptionAlgorithm {
+					m := crypto.NewMockAuthEncryptionAlgorithm(gomock.NewController(t))
+					m.EXPECT().EncryptToken(gomock.Any()).Return("", zerrors.ThrowInternal(nil, "id", "encryption failed"))
 					return m
 				}(),
 				eventstore: expectEventstore(),
@@ -1421,7 +1396,7 @@ func TestCommands_SucceedLDAPIDPIntent(t *testing.T) {
 		{
 			"push",
 			fields{
-				idpConfigEncryption: crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				idpConfigEncryption: crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 				eventstore: expectEventstore(
 					expectPush(
 						idpintent.NewLDAPSucceededEvent(
@@ -1467,7 +1442,7 @@ func TestCommands_SucceedLDAPIDPIntent(t *testing.T) {
 				),
 			},
 			res{
-				token: "aWQ",
+				token: "id",
 			},
 		},
 	}
@@ -1556,7 +1531,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 			"no tokens",
 			args{
 				&ldap.Session{},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken:  nil,
@@ -1599,7 +1574,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 						},
 					},
 				},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken: &crypto.CryptoValue{
@@ -1628,7 +1603,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 						},
 					},
 				},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken: &crypto.CryptoValue{
@@ -1654,7 +1629,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 						IDToken: "idToken",
 					},
 				},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken: &crypto.CryptoValue{
@@ -1681,7 +1656,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 						IDToken: "idToken",
 					},
 				},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken:  nil,
@@ -1702,7 +1677,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 						},
 					},
 				},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken: &crypto.CryptoValue{
@@ -1730,7 +1705,7 @@ func Test_tokensForSucceededIDPIntent(t *testing.T) {
 						},
 					},
 				},
-				crypto.CreateMockEncryptionAlg(gomock.NewController(t)),
+				crypto.CreateMockAuthEncryptionAlg(gomock.NewController(t)),
 			},
 			res{
 				accessToken: &crypto.CryptoValue{

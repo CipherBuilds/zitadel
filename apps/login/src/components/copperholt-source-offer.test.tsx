@@ -35,7 +35,7 @@ describe("Copperholt AGPL source offer", () => {
   });
 
   it("is rendered by every root layout and the global error page", () => {
-    const found = roots(APP).map((path) => relative(APP, path)).sort();
+    const found = roots(APP).map((path) => relative(APP, path)).sort((a, b) => a.localeCompare(b));
     expect(found).toEqual(expect.arrayContaining(["(login)/layout.tsx", "global-error.tsx"]));
     for (const name of found) {
       const source = readFileSync(join(APP, name), "utf8");

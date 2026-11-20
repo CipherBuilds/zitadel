@@ -4,9 +4,17 @@
 # before compiling, matching the upstream release pipeline.
 FROM golang@sha256:db99415e2625ce0ee03eed09edf7f32ae8c58dc399f28cc602a87fe7238119e4 AS go-toolchain
 
+# QA-TP15: the real regression test files never live in this Docker/ build context;
+# the build invocation supplies them as the named context `zitadel-tests` (docker
+# buildx --build-context zitadel-tests=<TestStudio checkout>), which always takes
+# precedence over this empty fallback stage. Declaring the stage here only gives
+# `COPY --from=zitadel-tests` a resolvable name; a build run without the named
+# context fails closed at that COPY (no file), never by silently pulling an image.
+FROM scratch AS zitadel-tests
+
 FROM node@sha256:f70403e87646dc51b45295f4b8b70cdad0b63d2297c4c9899119b03f7af7a6b3 AS zitadel-builder
-ARG ZITADEL_VERSION=v4.16.2
-ARG ZITADEL_REVISION=917ade35af9c51e4b57ca8e57488ae95928182ad
+ARG ZITADEL_VERSION=v4.20.5
+ARG ZITADEL_REVISION=59827a8ec6dd0c23acbba5d0ebdf41fdc857d66c
 ENV PATH="/usr/local/go/bin:${PATH}" \
     ZITADEL_VERSION="${ZITADEL_VERSION}" \
     GOFLAGS="-buildvcs=false -tags=copperholt_zitadel_upstream" \
@@ -27,15 +35,16 @@ RUN git init \
 # v0.62.0 requires) now; the upstream pack graph generates the packages before
 # compiling them. x/net v0.62.0 fixes GO-2026-6603/6611/6612/6617/6610 (http2)
 # and GO-2026-6866/6860; klauspost/compress v1.20.2 fixes GO-2026-6865;
-# go-jose/v4 v4.1.6 fixes GHSA-mgcc-cww5-fp2q (JWK RSA parameter DoS).
+# gorilla/csrf v1.7.3 fixes CVE-2025-24358; x/crypto at the GO-2026-5932 fix commit (the Traefik B33 pin, same
+# requirements as v0.58.0) drops the unmaintained openpgp packages.
+# ZITADEL-UP01/UP02 (v4.20.4, v4.20.5 has the same go.mod; 19 Nov 2026): upstream now pins chi v5.5.0 (GO-2026-5774/5775/5777, GHSA-j6qf-3m9c-vwj3),
+# go-jose/v4 v4.1.7 (GHSA-mgcc-cww5-fp2q fixed in v4.1.6), grpc v1.84.0 (CVE-2026-84445 fixed in v1.83.2) and
+# x/text v0.43.0, so those are no longer repaired here; the version checks below keep them as floors.
 RUN go get \
-      github.com/go-jose/go-jose/v4@v4.1.6 \
       github.com/gorilla/csrf@v1.7.3 \
       github.com/klauspost/compress@v1.20.2 \
-      golang.org/x/crypto@v0.58.0 \
-      golang.org/x/net@v0.62.0 \
-      golang.org/x/text@v0.43.0 \
-      google.golang.org/grpc@v1.83.2
+      golang.org/x/crypto@v0.58.1-0.20261009181718-2f1f834330b2 \
+      golang.org/x/net@v0.62.0
 RUN --mount=type=cache,id=zitadel-pnpm-store,target=/root/.local/share/pnpm/store \
     corepack enable && pnpm install --frozen-lockfile
 # AGPL-3.0 section 13 source offer (LIC-FIX01, Compliance FINAL wording of 14 Nov 2026) on every page this image
@@ -77,7 +86,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN --mount=type=cache,id=zitadel-go-mod,target=/go/pkg/mod \
     --mount=type=cache,id=zitadel-go-build,target=/root/.cache/go-build \
     printf '%s  %s\n' \
-        '73a6450abd3f4cdc5ec5f305d69d6f4bf4ecb63f57c0f51c74b71657493eb81d' \
+        '24b1f7d7b9b445a8553bcbca98615af9e205ed0b2819a9c266ef4367ae1ed9fd' \
         'internal/query/user.go' | sha256sum -c - \
     && git apply --check --whitespace=error-all /opt/copperholt-build/user_scan_errors.patch \
     && git apply --whitespace=error-all /opt/copperholt-build/user_scan_errors.patch \
@@ -98,11 +107,14 @@ RUN --mount=type=cache,id=zitadel-go-mod,target=/go/pkg/mod \
         -run '^TestCopperholtLegacyTokenErrorsStayUnconfirmed$' \
         ./internal/auth/repository/eventsourcing/eventstore | tee /tmp/copperholt-legacy-token.log \
     && grep -q -- '^--- PASS: TestCopperholtLegacyTokenErrorsStayUnconfirmed ' /tmp/copperholt-legacy-token.log \
-    && test "$(go list -m -f '{{.Version}}' google.golang.org/grpc)" = v1.83.2 \
+    && test "$(go list -m -f '{{.Version}}' google.golang.org/grpc)" = v1.84.0 \
     && test "$(go list -m -f '{{.Version}}' golang.org/x/net)" = v0.62.0 \
     && test "$(go list -m -f '{{.Version}}' github.com/klauspost/compress)" = v1.20.2 \
-    && test "$(go list -m -f '{{.Version}}' github.com/go-jose/go-jose/v4)" = v4.1.6 \
+    && test "$(go list -m -f '{{.Version}}' github.com/go-jose/go-jose/v4)" = v4.1.7 \
     && test "$(go list -m -f '{{.Version}}' github.com/gorilla/csrf)" = v1.7.3 \
+    && test "$(go list -m -f '{{.Version}}' github.com/go-chi/chi/v5)" = v5.5.0 \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/crypto)" = v0.58.1-0.20261009181718-2f1f834330b2 \
+    && test "$(go list -m -f '{{.Version}}' golang.org/x/text)" = v0.43.0 \
     && GOMAXPROCS=2 go vet -p 2 ./internal/query \
     && GOMAXPROCS=2 go test -p 2 -race -count=1 -timeout=180s -v \
         -run '^TestCopperholtUserScanErrorsStayUnconfirmed$' ./internal/query | tee /tmp/copperholt-user-scan.log \

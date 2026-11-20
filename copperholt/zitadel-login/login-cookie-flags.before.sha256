@@ -1,6 +1,4 @@
-0347114785b19b299f15cffe8c20dfb14866c44f510753ab112326994b417bfa  apps/login/src/lib/cookies.test.ts
-fdd0fcafbc87fa6875cd5191827967583e584e53cab1a65a6a30267503d5b1d7  apps/login/src/lib/cookies.ts
-57c65ffa120283c1da8716d1815860be2aee4e3cbf1d5299f969a7f4031cff2c  apps/login/src/lib/fingerprint.test.ts
-72bd62e2e6e655615c3d83fb371dfe7dbc83242b24f4f71b8ac5f16177ac92c6  apps/login/src/lib/fingerprint.ts
-6fd6088ee5b1d82a8fa03dd6f971c797fe2e760853a8e43a694336f2a6c57eb9  apps/login/src/lib/server/register.ts
-3a57329abb037e8da8ba70bfd00041083f3f99d4e728b0a35236f9d86595cc25  apps/login/src/lib/server/verify.ts
+da912134272b90b674cffd6d86d822d775f4828d7db90e31a17532d217b3ecf8  apps/login/src/lib/server/cookies.test.ts
+17673d37d585ed245acf848c5490fd0b5691307bd8341aec319e30ca8a83de0c  apps/login/src/lib/server/cookies.ts
+9accd2d41121f3209ec8dbb3411117f2511c7c9c0330630a9e6bed2cf441b9e3  apps/login/src/lib/server/fingerprint.test.ts
+1031b5c080e484910c6968fa79774bdb0fc4c0fd88faa14aa0e77758e4fe5691  apps/login/src/lib/server/fingerprint.ts

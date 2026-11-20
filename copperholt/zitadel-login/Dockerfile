@@ -4,46 +4,31 @@
 # or newer patched dependency floors.
 FROM node@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 AS builder
 
-ARG ZITADEL_REVISION=917ade35af9c51e4b57ca8e57488ae95928182ad
+ARG ZITADEL_REVISION=59827a8ec6dd0c23acbba5d0ebdf41fdc857d66c
 ENV NEXT_TELEMETRY_DISABLED="1" \
     NX_NO_CLOUD="true" \
     NX_DAEMON="false"
 WORKDIR /src
 
-RUN apk add --no-cache git=2.54.1-r0
+# ZITADEL-UP01/UP02 (v4.20.4 and v4.20.5, 19 Nov 2026): upstream's lockfile now carries every runtime floor this wrapper used to
+# override (tar 7.5.22, brace-expansion 5.0.12, propagator-jaeger 2.12.0, grpc-js 1.14.6, next 16.4.3,
+# protobufjs 7.6.5, sharp 0.35.5), so the install is the upstream frozen lockfile with no override. The upstream
+# tests build and pass unmodified, so the former login-test-contracts.patch is retired. src/lib/server/api.test.ts makes
+# its RSA fixture with the openssl CLI, so the builder stage (never the runtime image) carries it.
+RUN apk add --no-cache git=2.54.1-r0 openssl=3.5.9-r1
 RUN git clone --filter=blob:none https://github.com/zitadel/zitadel.git . \
-    && git checkout "${ZITADEL_REVISION}" \
-    && sed -i \
-      's/"tar@<7.5.16": "[^"]*"/"tar@<7.5.19": "7.5.19"/' \
-      pnpm-workspace.yaml \
-    && sed -i \
-      's/"brace-expansion@>=5.0.0 <5.0.6": "[^"]*"/'\
-'"brace-expansion@>=5.0.0 <5.0.8": "5.0.8"/' \
-      pnpm-workspace.yaml \
-    && sed -i \
-      '/^overrides:/a\  "@opentelemetry/propagator-jaeger@<2.9.0": "2.9.0"'\
-'\n  "@grpc/grpc-js@<1.14.5": "1.14.5"'\
-'\n  "next@<16.4.1": "16.4.1"'\
-'\n  "protobufjs@<7.6.5": "7.6.5"'\
-'\n  "sharp@<0.35.5": "0.35.5"' \
-      pnpm-workspace.yaml
+    && git checkout "${ZITADEL_REVISION}"
 RUN --mount=type=cache,id=zitadel-login-pnpm-store,target=/root/.local/share/pnpm/store \
     corepack enable \
-    && pnpm install --no-frozen-lockfile
-# Repair upstream test contracts without weakening production type checking.
-COPY login-test-contracts.patch login-test-contracts.before.sha256 login-test-contracts.after.sha256 /opt/copperholt-login-tests/
-RUN chmod 0700 /opt/copperholt-login-tests \
-    && sha256sum -c /opt/copperholt-login-tests/login-test-contracts.before.sha256 \
-    && git apply --check /opt/copperholt-login-tests/login-test-contracts.patch \
-    && git apply /opt/copperholt-login-tests/login-test-contracts.patch \
-    && sha256sum -c /opt/copperholt-login-tests/login-test-contracts.after.sha256 \
-    && rm /opt/copperholt-login-tests/login-test-contracts.patch /opt/copperholt-login-tests/login-test-contracts.before.sha256 /opt/copperholt-login-tests/login-test-contracts.after.sha256
+    && pnpm install --frozen-lockfile
 # Every sign-in host cookie the login sets is Secure, HttpOnly and SameSite=Lax
 # (QA-AUTH-STORAGE found fingerprintId and NEXT_LOCALE without Secure), and
 # fingerprintId lasts 30 days instead of upstream's one year (Compliance, 8 Nov
 # 2026, data minimisation). Upstream has no setting for these flags or for the
 # fingerprintId lifetime, so the exact audited files are patched and the
-# regression scan below pins them.
+# regression scan below pins them. From v4.20.4 upstream sets Secure (production)
+# and SameSite=Lax on its own browser cookies; NEXT_LOCALE still lacks both, and
+# fingerprintId and bindingId share setBrowserCookie's one-year default.
 COPY login-cookie-flags.patch login-cookie-flags.before.sha256 login-cookie-flags.after.sha256 /opt/copperholt-login-cookies/
 COPY copperholt-cookie-flags.test.ts /src/apps/login/src/lib/copperholt-cookie-flags.test.ts
 RUN sha256sum -c /opt/copperholt-login-cookies/login-cookie-flags.before.sha256 \
@@ -71,16 +56,20 @@ RUN --network=none pnpm --dir apps/login exec vitest run --maxWorkers=2 \
       src/components/copperholt-source-offer.test.tsx \
       src/components/set-password-form.test.tsx \
       src/components/set-register-password-form.test.tsx \
-      src/lib/api.test.ts \
-      src/lib/cookies.test.ts \
+      src/lib/actions/loginname.test.ts \
+      src/lib/actions/oidc.test.ts \
+      src/lib/actions/password.test.ts \
+      src/lib/actions/session.test.ts \
+      src/lib/actions/verify.test.ts \
       src/lib/copperholt-cookie-flags.test.ts \
-      src/lib/fingerprint.test.ts \
-      src/lib/oidc.test.ts \
-      src/lib/server/loginname.test.ts \
-      src/lib/server/password.test.ts \
-      src/lib/server/verify.test.ts \
-      src/lib/session.test.ts \
-      src/lib/verify-helper.test.ts \
+      src/lib/server/api.test.ts \
+      src/lib/server/cookies.test.ts \
+      src/lib/server/device-code-check.test.ts \
+      src/lib/server/fingerprint.test.ts \
+      src/lib/server/oidc.test.ts \
+      src/lib/server/session.test.ts \
+      src/lib/server/verification-check.test.ts \
+      src/lib/server/verify-helper.test.ts \
       --reporter=json --outputFile=/opt/copperholt-login-tests/login-tests.json > /opt/copperholt-login-tests/login-tests.log 2>&1; \
     test_status=$?; \
     node /opt/copperholt-login-tests/summarize-login-tests.cjs && test "$test_status" -eq 0 \

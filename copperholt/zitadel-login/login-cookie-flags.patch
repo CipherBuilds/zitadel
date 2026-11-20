@@ -1,8 +1,8 @@
-diff --git a/apps/login/src/lib/cookies.test.ts b/apps/login/src/lib/cookies.test.ts
-index 3f5537b..906b391 100644
---- a/apps/login/src/lib/cookies.test.ts
-+++ b/apps/login/src/lib/cookies.test.ts
-@@ -63,6 +63,8 @@ describe("cookies", () => {
+diff --git a/apps/login/src/lib/server/cookies.test.ts b/apps/login/src/lib/server/cookies.test.ts
+index ee99089ba..00d7999ca 100644
+--- a/apps/login/src/lib/server/cookies.test.ts
++++ b/apps/login/src/lib/server/cookies.test.ts
+@@ -73,6 +73,8 @@ describe("cookies", () => {
          name: "NEXT_LOCALE",
          value: "en",
          httpOnly: true,
@@ -11,11 +11,11 @@ index 3f5537b..906b391 100644
          path: "/",
        });
      });
-diff --git a/apps/login/src/lib/cookies.ts b/apps/login/src/lib/cookies.ts
-index 3e97b56..63ecefa 100644
---- a/apps/login/src/lib/cookies.ts
-+++ b/apps/login/src/lib/cookies.ts
-@@ -54,6 +54,8 @@ export async function setLanguageCookie(language: string) {
+diff --git a/apps/login/src/lib/server/cookies.ts b/apps/login/src/lib/server/cookies.ts
+index dd56e08c2..1d598659c 100644
+--- a/apps/login/src/lib/server/cookies.ts
++++ b/apps/login/src/lib/server/cookies.ts
+@@ -139,6 +139,8 @@ export async function setLanguageCookie(language: string) {
      name: LANGUAGE_COOKIE_NAME,
      value: language,
      httpOnly: true,
@@ -24,93 +24,41 @@ index 3e97b56..63ecefa 100644
      path: "/",
    });
  }
-diff --git a/apps/login/src/lib/fingerprint.test.ts b/apps/login/src/lib/fingerprint.test.ts
-index 9ef7f15..91ba17e 100644
---- a/apps/login/src/lib/fingerprint.test.ts
-+++ b/apps/login/src/lib/fingerprint.test.ts
-@@ -75,8 +75,10 @@ describe("fingerprint", () => {
-         name: "fingerprintId",
-         value: fingerprintId,
-         httpOnly: true,
-+        secure: true,
-+        sameSite: "lax",
-         path: "/",
--        maxAge: 31536000,
-+        maxAge: 2592000,
-       });
-     });
- 
-@@ -102,7 +104,7 @@ describe("fingerprint", () => {
-       expect(callArgs.path).toBe("/");
-     });
- 
--    it("should set maxAge to 1 year (31536000 seconds)", async () => {
-+    it("should set maxAge to 30 days (2592000 seconds)", async () => {
-       const mockSet = vi.fn();
-       const mockCookies = { set: mockSet };
-       vi.mocked(cookies).mockResolvedValue(mockCookies as any);
-@@ -110,8 +112,8 @@ describe("fingerprint", () => {
-       await setFingerprintIdCookie("test-id");
- 
-       const callArgs = mockSet.mock.calls[0][0];
--      expect(callArgs.maxAge).toBe(31536000);
--      expect(callArgs.maxAge).toBe(365 * 24 * 60 * 60);
-+      expect(callArgs.maxAge).toBe(2592000);
-+      expect(callArgs.maxAge).toBe(30 * 24 * 60 * 60);
-     });
- 
-     it("should handle special characters in fingerprint ID", async () => {
-@@ -223,8 +225,10 @@ describe("fingerprint", () => {
-         name: "fingerprintId",
+diff --git a/apps/login/src/lib/server/fingerprint.test.ts b/apps/login/src/lib/server/fingerprint.test.ts
+index 28d2d93c3..26dbfcb0a 100644
+--- a/apps/login/src/lib/server/fingerprint.test.ts
++++ b/apps/login/src/lib/server/fingerprint.test.ts
+@@ -77,7 +77,7 @@ describe("fingerprint", () => {
          value: newUuid,
          httpOnly: true,
-+        secure: true,
-+        sameSite: "lax",
          path: "/",
 -        maxAge: 31536000,
 +        maxAge: 2592000,
+         sameSite: "lax",
+         secure: false,
        });
-     });
+@@ -159,7 +159,7 @@ describe("fingerprint", () => {
+         value: "new-binding-id",
+         httpOnly: true,
+         path: "/",
+-        maxAge: 31536000,
++        maxAge: 2592000,
+         sameSite: "none",
+         secure: true,
+       });
+diff --git a/apps/login/src/lib/server/fingerprint.ts b/apps/login/src/lib/server/fingerprint.ts
+index d0dfebcbe..a9898feeb 100644
+--- a/apps/login/src/lib/server/fingerprint.ts
++++ b/apps/login/src/lib/server/fingerprint.ts
+@@ -14,8 +14,9 @@ const logger = createLogger("fingerprint");
  
-diff --git a/apps/login/src/lib/fingerprint.ts b/apps/login/src/lib/fingerprint.ts
-index 5f10c75..1f5d88e 100644
---- a/apps/login/src/lib/fingerprint.ts
-+++ b/apps/login/src/lib/fingerprint.ts
-@@ -15,8 +15,10 @@ export async function setFingerprintIdCookie(fingerprintId: string) {
-     name: "fingerprintId",
-     value: fingerprintId,
-     httpOnly: true,
-+    secure: true,
-+    sameSite: "lax",
-     path: "/",
--    maxAge: 31536000, // 1 year
-+    maxAge: 2592000, // 30 days (Copperholt: Compliance data minimisation, 8 Nov 2026)
-   });
- }
+ const BINDING_ID_COOKIE = "bindingId";
  
-diff --git a/apps/login/src/lib/server/register.ts b/apps/login/src/lib/server/register.ts
-index 9b927c0..0a55443 100644
---- a/apps/login/src/lib/server/register.ts
-+++ b/apps/login/src/lib/server/register.ts
-@@ -145,6 +145,8 @@ export async function registerUser(
-       name: "verificationCheck",
-       value: verificationCheck,
-       httpOnly: true,
-+      secure: true,
-+      sameSite: "lax",
-       path: "/",
-       maxAge: 300, // 5 minutes
-     });
-diff --git a/apps/login/src/lib/server/verify.ts b/apps/login/src/lib/server/verify.ts
-index 382c82a..de47447 100644
---- a/apps/login/src/lib/server/verify.ts
-+++ b/apps/login/src/lib/server/verify.ts
-@@ -182,6 +182,8 @@ export async function sendVerification(command: VerifyUserByEmailCommand) {
-       name: "verificationCheck",
-       value: verificationCheck,
-       httpOnly: true,
-+      secure: true,
-+      sameSite: "lax",
-       path: "/",
-       maxAge: 300, // 5 minutes
-     });
+-// sets an httpOnly browser cookie (1 year by default) that also works when the login is embedded in an iframe
+-export async function setBrowserCookie(name: string, value: string, maxAge: number = 31536000) {
++// sets an httpOnly browser cookie (30 days by default) that also works when the login is embedded in an iframe
++// Copperholt: 30 days instead of one year (Compliance data minimisation, 8 Nov 2026)
++export async function setBrowserCookie(name: string, value: string, maxAge: number = 2592000) {
+   const cookiesList = await cookies();
+ 
+   let iFrameEnabled = false;

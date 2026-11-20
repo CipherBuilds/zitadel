@@ -1,7 +1,7 @@
 "use client";
 
+import { sendLoginname } from "@/lib/actions/loginname";
 import { handleServerActionResponse } from "@/lib/client-utils";
-import { sendLoginname } from "@/lib/server/loginname";
 import { LoginSettings } from "@zitadel/proto/zitadel/settings/v2/login_settings_pb";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -68,7 +68,6 @@ export function UsernameForm({
           defaultOrganization,
           requestId,
           suffix,
-          ignoreUnknownUsernames: loginSettings?.ignoreUnknownUsernames,
         });
 
         handleServerActionResponse(res, router, setSamlData, setError);
@@ -79,7 +78,7 @@ export function UsernameForm({
         setLoading(false);
       }
     },
-    [defaultOrganization, requestId, suffix, loginSettings, router, t],
+    [defaultOrganization, requestId, suffix, router, t],
   );
 
   useEffect(() => {
