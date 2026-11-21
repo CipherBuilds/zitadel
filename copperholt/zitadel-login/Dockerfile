@@ -2,7 +2,7 @@
 # Rebuild the exact deployed Zitadel Login revision with current fixed runtime
 # dependencies. Remove this wrapper once the official image includes the same
 # or newer patched dependency floors.
-FROM node@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8 AS builder
+FROM node@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5 AS builder
 
 ARG ZITADEL_REVISION=59827a8ec6dd0c23acbba5d0ebdf41fdc857d66c
 ENV NEXT_TELEMETRY_DISABLED="1" \
@@ -75,10 +75,10 @@ RUN --network=none pnpm --dir apps/login exec vitest run --maxWorkers=2 \
     node /opt/copperholt-login-tests/summarize-login-tests.cjs && test "$test_status" -eq 0 \
     && rm /opt/copperholt-login-tests/login-tests.json /opt/copperholt-login-tests/login-tests.log /opt/copperholt-login-tests/summarize-login-tests.cjs
 
-FROM node@sha256:a34ab6d7f6f4813f4d0c5469d74685604b962fbdbf5793a7bc7b4998ecb867c8
+FROM node@sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5
 WORKDIR /app
-# The base's only pending security upgrade is zlib (named, not a blanket apk upgrade).
-RUN apk add --no-cache --upgrade zlib=1.4-r0 \
+# The base's pending security upgrades are zlib and OpenSSL (named, not a blanket apk upgrade).
+RUN apk add --no-cache --upgrade zlib=1.4-r0 libcrypto3=3.5.9-r1 libssl3=3.5.9-r1 \
     && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 --ingroup nodejs nextjs \
     && mkdir -p /.env-file \
